@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.bosh.rbac.mapper.RbacMapper">
+
+    <resultMap id="resource" type="com.bosh.rbac.model.Resource">
+        <result column="resource_type" property="type" javaType="com.bosh.rbac.model.ResourceType" jdbcType="INTEGER"
+                typeHandler="com.bosh.rbac.mapper.th.IntEnumTypeHandler" />
+        <result column="resource_value" property="value" />
+    </resultMap>
+
+    <resultMap id="entity" type="com.bosh.rbac.model.Entity">
+        <result column="entity_id" property="id" />
+        <result column="entity_type" property="type" javaType="com.bosh.rbac.model.EntityType" jdbcType="INTEGER"
+                typeHandler="com.bosh.rbac.mapper.th.IntEnumTypeHandler" />
+    </resultMap>
+
+    <resultMap id="user" type="com.bosh.rbac.model.User">
+        <id column="id" property="id" />
+        <result column="user_id" property="userId" />
+        <result column="username" property="username" />
+        <result column="admin" property="admin" />
+        <result column="created_at" property="createdAt" />
+    </resultMap>
+
+    <resultMap id="role" type="com.bosh.rbac.model.Role">
+        <id column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="description" property="description" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+    </resultMap>
+
+    <resultMap id="policy" type="com.bosh.rbac.model.Policy">
+        <id column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="description" property="description" />
+        <result column="action" property="action" javaType="com.bosh.rbac.model.Action" jdbcType="INTEGER"
+                typeHandler="com.bosh.rbac.mapper.th.IntEnumTypeHandler" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+        <association property="resource" resultMap="resource" />
+    </resultMap>
+
+    <resultMap id="userRole" type="com.bosh.rbac.model.UserRole">
+        <result column="user_id" property="userId" />
+        <result column="role_id" property="roleId" />
+        <result column="created_at" property="createdAt" />
+    </resultMap>
+
+    <resultMap id="entityPolicy" type="com.bosh.rbac.model.EntityPolicy">
+        <result column="entity_type" property="entityType" javaType="com.bosh.rbac.model.EntityType" jdbcType="INTEGER"
+                typeHandler="com.bosh.rbac.mapper.th.IntEnumTypeHandler" />
+        <result column="entity_id" property="entityId" />
+        <result column="policy_id" property="policyId" />
+        <result column="created_at" property="createdAt" />
+    </resultMap>
+
+    <insert id="_insertUsers" parameterType="java.util.List" useGeneratedKeys="true" keyProperty="id">
+        insert into `users` values
+        <foreach collection="list" item="user" separator="),(" open="(" close=")">
+            null,#{user.userId},#{user.username},#{user.admin},#{user.createdAt}
+        </foreach>
+    </insert>
+
+    <select id="_getUser" resultMap="user">
+        select * from `users` where `user_id`=#{userId}
+    </select>
+
+    <select id="_getUserById" resultMap="user">
+        select * from `users` where `id`=#{id}
+    </select>
+
+    <select id="_listUsers" resultMap="user">
+        select * from `users`
+        <where>
+            <if test="ler.filters != null">
+                <foreach collection="ler.filters" open=" and " separator=" and " item="item" index="index">
+                    `${item.field}` ${item.operator.expr} #{item.value}
+                </foreach>
+            </if>
+            <if test="ler.ins != null">
+                <foreach collection="ler.ins" open=" and " separator=" and " item="item" index="index">
+                    `${index}` in
+                    <foreach collection="item" index="subIndex" item="subItem" open="(" separator="," close=")">
+                        #{subItem}
+                    </foreach>
+                </foreach>
+            </if>
+        </where>
+        <if test="ler.sorters != null">
+            <foreach collection="ler.sorters" open="order by" separator="," item="item" index="index">
+                `${item.field}` ${item.order.name}
+            </foreach>
+        </if>
+        limit #{ler.limit} offset #{ler.offset}
+    </select>
+
+    <select id="_countUsers" resultType="java.lang.Long">
+        select count(1) from `users`
+        <where>
+            <if test="ler.filters != null">
+                <foreach collection="ler.filters" open=" and " separator=" and " item="item" index="index">
+                    `${item.field}` ${item.operator.expr} #{item.value}
+                </foreach>
+            </if>
+            <if test="ler.ins != null">
+                <foreach collection="ler.ins" open=" and " separator=" and " item="item" index="index">
+                    `${index}` in
+                    <foreach collection="item" index="subIndex" item="subItem" open="(" separator="," close=")">
+                        #{subItem}
+                    </foreach>
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <delete id="_deleteUsers">
+        delete from `users` where `user_id` in
+        <foreach collection="userIds" open="(" close=")" separator="," item="userId">#{userId}</foreach>
+    </delete>
+
+    <insert id="_insertRole" useGeneratedKeys="true" keyProperty="id">
+        insert into `roles` values (null, #{role.name}, #{role.description}, #{role.createdAt}, #{role.updatedAt})
+    </insert>
+
+    <insert id="_insertRoles" parameterType="java.util.List" useGeneratedKeys="true" keyProperty="role.id">
+        insert into `roles` values
+        <foreach collection="list" item="role" separator="),(" open="(" close=")">
+            null,#{role.name},#{role.description},#{role.createdAt},#{role.updatedAt}
+        </foreach>
+    </insert>
+
+    <select id="_getRole" resultMap="role">
+        select * from `roles` where `id`=#{id}
+    </select>
+
+    <select id="_listRoles" resultMap="role">
+        select * from `roles`
+        <where>
+            <if test="ler.filters != null">
+                <foreach collection="ler.filters" open=" and " separator=" and " item="item" index="index">
+                    `${item.field}` ${item.operator.expr} #{item.value}
+                </foreach>
+            </if>
+            <if test="ler.ins != null">
+                <foreach collection="ler.ins" open=" and " separator=" and " item="item" index="index">
+                    `${index}` in
+                    <foreach collection="item" index="subIndex" item="subItem" open="(" separator="," close=")">
+                        #{subItem}
+                    </foreach>
+                </foreach>
+            </if>
+        </where>
+        <if test="ler.sorters != null">
+            <foreach collection="ler.sorters" open="order by" separator="," item="item" index="index">
+                `${item.field}` ${item.order.name}
+            </foreach>
+        </if>
+        limit #{ler.limit} offset #{ler.offset}
+    </select>
+
+    <select id="_countRoles" resultType="java.lang.Long">
+        select count(1) from `roles`
+        <where>
+            <if test="ler.filters != null">
+                <foreach collection="ler.filters" open=" and " separator=" and " item="item" index="index">
+                    `${item.field}` ${item.operator.expr} #{item.value}
+                </foreach>
+            </if>
+            <if test="ler.ins != null">
+                <foreach collection="ler.ins" open=" and " separator=" and " item="item" index="index">
+                    `${index}` in
+                    <foreach collection="item" index="subIndex" item="subItem" open="(" separator="," close=")">
+                        #{subItem}
+                    </foreach>
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <update id="_updateRole">
+        update `roles`
+        <set>
+            <if test="role.description != null">`description`=#{role.description},</if>
+            <if test="role.updatedAt != null">`updated_at`=#{role.updatedAt},</if>
+        </set>
+        where `id`=#{role.id}
+    </update>
+
+    <delete id="_deleteRoles">
+        delete from `roles` where `id` in
+        <foreach collection="roleIds" open="(" close=")" separator="," item="roleId">#{roleId}</foreach>
+    </delete>
+
+    <insert id="_insertPolicy" useGeneratedKeys="true" keyProperty="id">
+        insert into `policies` values (null, #{policy.name}, #{policy.description}, #{policy.resource.type.value},
+                                       #{policy.resource.value}, #{policy.action.value}, #{policy.createdAt}, #{policy.updatedAt})
+    </insert>
+
+    <insert id="_insertPolicies" parameterType="java.util.List" useGeneratedKeys="true" keyProperty="policy.id">
+        insert into `policies` values
+        <foreach collection="list" item="policy" separator="),(" open="(" close=")">
+            null, #{policy.name}, #{policy.description}, #{policy.resource.type}, #{policy.resource.value},
+            #{policy.action}, #{policy.createdAt}, #{policy.updatedAt}
+        </foreach>
+    </insert>
+
+    <select id="_getPolicy" resultMap="policy">
+        select * from `policies` where `id`=#{id}
+    </select>
+
+    <select id="_listPolicies" resultMap="policy">
+        select * from `policies`
+        <where>
+            <if test="ler.filters != null">
+                <foreach collection="ler.filters" open=" and " separator=" and " item="item" index="index">
+                    `${item.field}` ${item.operator.expr} #{item.value}
+                </foreach>
+            </if>
+            <if test="ler.ins != null">
+                <foreach collection="ler.ins" open=" and " separator=" and " item="item" index="index">
+                    `${index}` in
+                    <foreach collection="item" index="subIndex" item="subItem" open="(" separator="," close=")">
+                        #{subItem}
+                    </foreach>
+                </foreach>
+            </if>
+        </where>
+        <if test="ler.sorters != null">
+            <foreach collection="ler.sorters" open="order by" separator="," item="item" index="index">
+                `${item.field}` ${item.order.name}
+            </foreach>
+        </if>
+        limit #{ler.limit} offset #{ler.offset}
+    </select>
+
+    <select id="_countPolicies" resultType="java.lang.Long">
+        select count(1) from `policies`
+        <where>
+            <if test="ler.filters != null">
+                <foreach collection="ler.filters" open=" and " separator=" and " item="item" index="index">
+                    `${item.field}` ${item.operator.expr} #{item.value}
+                </foreach>
+            </if>
+            <if test="ler.ins != null">
+                <foreach collection="ler.ins" open=" and " separator=" and " item="item" index="index">
+                    `${index}` in
+                    <foreach collection="item" index="subIndex" item="subItem" open="(" separator="," close=")">
+                        #{subItem}
+                    </foreach>
+                </foreach>
+            </if>
+        </where>
+    </select>
+
+    <select id="_getResourcesPolicies" resultMap="policy">
+        select * from `policies` where
+        <foreach collection="resources" item="resource" open="(" separator=") or (" close=")">
+            `resource_type`=#{resource.type.value} and `resource_value`=#{resource.value}
+        </foreach>
+    </select>
+
+    <update id="_updatePolicy">
+        update `policies`
+        <set>
+            <if test="policy.description != null">`description`=#{policy.description},</if>
+            <if test="policy.updatedAt != null">`updated_at`=#{policy.updatedAt},</if>
+        </set>
+        where `id`=#{policy.id}
+    </update>
+
+    <delete id="_deletePolicies">
+        delete from `policies` where `id` in
+        <foreach collection="policyIds" open="(" close=")" separator="," item="policyId">#{policyId}</foreach>
+    </delete>
+
+    <insert id="_insertUserRole">
+        insert into `users_roles` values (#{userId}, #{roleId}, #{createdAt})
+    </insert>
+
+    <select id="_getUserRole" resultMap="userRole">
+        select * from `users_roles` where `user_id`=#{userId} and `role_id`=#{roleId}
+    </select>
+
+    <select id="_listRoleUsers" resultMap="user">
+        select u.* from `users_roles` ur, `users` u where ur.`role_id`=#{roleId} and ur.`user_id`=u.`id`
+        limit #{limit} offset #{offset}
+    </select>
+
+    <select id="_countRoleUsers" resultType="java.lang.Long">
+        select count(1) from `users_roles` where `role_id`=#{roleId}
+    </select>
+
+    <select id="_listUserRoles" resultMap="role">
+        select r.* from `users_roles` ur, `roles` r where ur.`user_id`=#{userId} and ur.`role_id`=r.`id`
+        limit #{limit} offset #{offset}
+    </select>
+
+    <select id="_countUserRoles" resultType="java.lang.Long">
+        select count(1) from `users_roles` where `user_id`=#{userId}
+    </select>
+
+    <delete id="_deleteUserRole">
+        delete from `users_roles` where `user_id`=#{userId} and `role_id`=#{roleId}
+    </delete>
+
+    <delete id="_deleteUserRoles">
+        delete from `users_roles` where `user_id`=#{userId}
+    </delete>
+
+    <delete id="_deleteRoleUsers">
+        delete from `users_roles` where `role_id`=#{roleId}
+    </delete>
+
+    <insert id="_insertEntityPolicy">
+        insert into `entities_policies` values (#{entityType}, #{entityId}, #{policyId}, #{createdAt})
+    </insert>
+
+    <select id="_getEntityPolicy" resultMap="entityPolicy">
+        select * from `entities_policies` where `entity_type`=#{entityType} and `entity_id`=#{entityId} and `policy_id`=#{policyId}
+    </select>
+
+    <select id="_listPolicyEntities" resultMap="entity">
+        select `entity_type`, `entity_id` from `entities_policies` where `policy_id`=#{policyId}
+        limit #{limit} offset #{offset}
+    </select>
+
+    <select id="_countPolicyEntities" resultType="java.lang.Long">
+        select count(1) from `entities_policies` where `policy_id`=#{policyId}
+    </select>
+
+    <select id="_listEntityPolicies" resultMap="policy">
+        select p.* from `entities_policies` ep, `policies` p where ep.`entity_type`=#{entityType} and ep.`entity_id`=#{entityId}
+        and ep.`policy_id`=p.`id` limit #{limit} offset #{offset}
+    </select>
+
+    <select id="_countEntityPolicies" resultType="java.lang.Long">
+        select count(1) from `entities_policies` where `entity_type`=#{entityType} and `entity_id`=#{entityId}
+    </select>
+
+    <delete id="_deleteEntityPolicy">
+        delete from `entities_policies` where `entity_type`=#{entityType} and `entity_id`=#{entityId} and `policy_id`=#{policyId}
+    </delete>
+
+    <delete id="_deleteEntityPolicies">
+        delete from `entities_policies` where `entity_type`=#{entityType} and `entity_id`=#{entityId}
+    </delete>
+
+    <delete id="_deletePolicyEntities">
+        delete from `entities_policies` where `policy_id`=#{policyId}
+    </delete>
+
+    <select id="_getUserPolicy" resultMap="entityPolicy">
+        select ep.* from `entities_policies` ep, `users_roles` ur where ep.`policy_id` in
+            <foreach collection="policyIds" item="policyId" open="(" close=")" separator=",">
+                #{policyId}
+            </foreach>
+        and (
+            (ep.`entity_type`=1 and ep.`entity_id`=#{userId})
+            or
+            (ep.`entity_type`=2 and ep.`entity_id`=ur.`role_id` and ur.`user_id`=#{userId})
+        )
+        limit 1
+    </select>
+
+</mapper>
