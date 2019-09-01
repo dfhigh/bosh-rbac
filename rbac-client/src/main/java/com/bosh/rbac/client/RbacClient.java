@@ -20,7 +20,7 @@ import static org.mib.common.validator.Validator.validateObjectNotNull;
 import static org.mib.common.validator.Validator.validateStringNotBlank;
 
 @Slf4j
-public class RbacClient {
+public class RbacClient implements RbacAuthorizer {
 
     private static final TypeReference<ListPayload<User>> USERS_TR = new TypeReference<ListPayload<User>>() {};
     private static final TypeReference<ListPayload<Role>> ROLES_TR = new TypeReference<ListPayload<Role>>() {};
@@ -247,6 +247,7 @@ public class RbacClient {
         log.debug("unassigned policy {} from role {}", policyId, roleId);
     }
 
+    @Override
     public AuthResponse authorize(AuthRequest request) throws Exception {
         validateObjectNotNull(request, "auth request");
         log.debug("authorizing {}...", request);
